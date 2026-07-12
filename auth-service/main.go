@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/joho/godotenv"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -25,6 +26,7 @@ type LoginRequest struct{
 
 func main() {
 
+	godotenv.Load()
 	
 
 	// This creates a simple web route for our "Ticket Booth"

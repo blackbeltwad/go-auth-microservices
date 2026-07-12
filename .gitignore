@@ -1,3 +1,6 @@
 auth-service/auth-service
 task-service/task-service
 .DS_Store
+auth-service/.env
+task-service/.env
+

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/joho/godotenv"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -25,7 +26,8 @@ type Task struct{
 }
 
 func main(){
-
+	 godotenv.Load()
+	 
 	//Task to test validity
 	var mock Task
 	mock.Id = 258678
