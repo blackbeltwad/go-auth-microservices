@@ -1,14 +1,21 @@
 package main
 
 import (
-	"github.com/joho/godotenv"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"github.com/golang-jwt/jwt/v5"
-	"strings"
 	"os"
+	"strings"
+	"log"
+
+	"github.com/golang-jwt/jwt/v5"
+	
+
+	_ "github.com/lib/pq"
 )
+
+var db *sql.DB
 
 func getJWTKey() []byte {
     secret := os.Getenv("JWT_SECRET")
@@ -25,8 +32,49 @@ type Task struct{
 	Title string `json:"title"`
 }
 
+func initDB(){
+	host := os.Getenv("DB_HOST")
+	port := os.Getenv("DB_PORT")
+	user := os.Getenv("DB_USER")
+	password := os.Getenv("DB_PASSWORD")
+	dbname := os.Getenv("DB_NAME")
+
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		host, port, user, password, dbname,
+	)
+
+	// 3. Open the database connection pool
+	var err error
+	db, err = sql.Open("postgres", dsn)
+	if err != nil {
+		log.Fatalf("Error opening database: %v", err)
+	}
+
+	// 4. Ping the database to make sure it's actually alive and responding
+	if err = db.Ping(); err != nil {
+		log.Fatalf("Database is unreachable: %v", err)
+	}
+
+	// 5. Create our tasks table automatically if it doesn't exist yet
+	// Note: Postgres uses SERIAL for auto-incrementing IDs instead of AUTOINCREMENT
+	query := `
+	CREATE TABLE IF NOT EXISTS tasks (
+		id SERIAL PRIMARY KEY,
+		title TEXT NOT NULL,
+		done BOOLEAN NOT NULL DEFAULT false
+	);`
+
+	_, err = db.Exec(query)
+	if err != nil {
+		log.Fatalf("Error creating tasks table: %v", err)
+	}
+
+	fmt.Println("Successfully connected to PostgreSQL and verified tables!")
+}
+
 func main(){
-	 godotenv.Load()
+	initDB()
+	 
 
 	//Task to test validity
 	var mock Task
