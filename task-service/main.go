@@ -27,7 +27,7 @@ type Task struct{
 
 func main(){
 	 godotenv.Load()
-	 
+
 	//Task to test validity
 	var mock Task
 	mock.Id = 258678
@@ -72,7 +72,7 @@ func main(){
 			fmt.Printf("Error marshaling to JSON: %v\n", err)
 		}
 		fmt.Fprint(w, string(jsonData))
-		return
+		
 	})
 
 	fmt.Println("Task Service is starting on port 8081...")
