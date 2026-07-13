@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"log"
+	"log" 
 
 	"github.com/golang-jwt/jwt/v5"
 	
@@ -61,6 +61,7 @@ func initDB(){
 	CREATE TABLE IF NOT EXISTS tasks (
 		id SERIAL PRIMARY KEY,
 		title TEXT NOT NULL,
+		username TEXT NOT NULL,
 		done BOOLEAN NOT NULL DEFAULT false
 	);`
 
@@ -74,13 +75,8 @@ func initDB(){
 
 func main(){
 	initDB()
-	 
 
-	//Task to test validity
-	var mock Task
-	mock.Id = 258678
-	mock.Done = false
-	mock.Title = "Coding"
+	
 
 	http.HandleFunc("/tasks", func(w http.ResponseWriter, r *http.Request) {
 		authorized := r.Header.Get("Authorization")
@@ -112,14 +108,76 @@ func main(){
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
-		
 
-		
-		jsonData, err := json.Marshal(mock)
-		if err != nil {
-			fmt.Printf("Error marshaling to JSON: %v\n", err)
+		var username string
+		if claims, ok := token.Claims.(jwt.MapClaims); ok {
+			if subValue, exists := claims["sub"].(string); exists {
+				username = subValue
+			}
 		}
-		fmt.Fprint(w, string(jsonData))
+
+		if username == "" {
+			http.Error(w, "Invalid token claims", http.StatusUnauthorized)
+			return
+		}
+		
+		//---------------------------------------------------------------
+		// HANDLES GET
+		
+		if r.Method == http.MethodGet {
+			// Query all tasks where username matches the token's subject
+			query := `SELECT id, title, done FROM tasks WHERE username = $1`
+			rows, err := db.QueryContext(r.Context(), query, username)
+			if err != nil {
+				log.Printf("Database query failed: %v", err)
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				return
+			}
+			defer rows.Close()
+
+			tasks := []Task{}
+			for rows.Next() {
+				var t Task
+				if err := rows.Scan(&t.Id, &t.Title, &t.Done); err != nil {
+					log.Printf("Row scan failed: %v", err)
+					http.Error(w, "Internal server error", http.StatusInternalServerError)
+					return
+				}
+				tasks = append(tasks, t)
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(tasks)
+			return
+		}
+
+		//----------------------------------------------------------------
+		// HANDLES POST
+		if r.Method == http.MethodPost{
+			var task Task
+
+			err := json.NewDecoder(r.Body).Decode(&task)
+			if err != nil {
+				http.Error(w, "Invalid JSON payload: "+err.Error(), http.StatusBadRequest)
+				return
+			}
+
+			insertQuery := `INSERT INTO tasks (username, done, title) VALUES ($1, $2, $3)`
+			_, err = db.ExecContext(r.Context(), insertQuery, username, task.Done, task.Title)
+
+			if err != nil {
+				http.Error(w, "Invalid JSON payload: "+err.Error(), http.StatusBadRequest)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(map[string]string{"message": "Task created successfully"})
+			return
+		}
+
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		
 	})
 
