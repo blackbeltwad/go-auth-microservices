@@ -42,6 +42,11 @@ func main(){
 		proxyLogin.ServeHTTP(w, r)
 	})
 
+	http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
+    r.Host = targetLogin.Host
+    proxyLogin.ServeHTTP(w, r)
+	})
+
 	http.HandleFunc("/tasks", func(w http.ResponseWriter, r *http.Request) {
 		r.Host = targetTask.Host
 		proxyTask.ServeHTTP(w, r)

@@ -56,7 +56,7 @@ func initDB(){
 	}
 
 	// 5. Create our tasks table automatically if it doesn't exist yet
-	// Note: Postgres uses SERIAL for auto-incrementing IDs instead of AUTOINCREMENT
+	
 	query := `
 	CREATE TABLE IF NOT EXISTS tasks (
 		id SERIAL PRIMARY KEY,
@@ -64,6 +64,7 @@ func initDB(){
 		username TEXT NOT NULL,
 		done BOOLEAN NOT NULL DEFAULT false
 	);`
+	
 
 	_, err = db.Exec(query)
 	if err != nil {
